@@ -6,11 +6,15 @@ A small **REST API** and **embedded web dashboard** for managing fighters, train
 
 ## Features
 
-- **Users** — Register and login; passwords hashed with bcrypt.
-- **Fighters** — CRUD-style operations with pagination; linked to a trainer.
+- **Users** — Register and login; bcrypt; short-lived **access JWT** + **refresh token**; optional password reset flow; **locked** accounts.
+- **Fighters** — CRUD, pagination, filters, CSV export, extended profile (KVKK-sensitive fields optional), **assistant/corner** trainers.
 - **Trainers** — CRUD with specializations (PostgreSQL arrays); responses include assigned fighters.
-- **Web UI** — Single-page app served at `/` (English), calling `/api/v1` on the same origin.
+- **Operations** — Schedule (overlap checks), daily **attendance**, **announcements**.
+- **Admin API** — List users, change role, lock/unlock (`admin` only).
+- **Web UI** — Dashboard at `/`; auto **refresh** on `401` when a refresh token exists.
+- **Docs** — `GET /api/v1/openapi.yaml`.
 - **Health** — `GET /healthcheck` for load balancers and monitoring.
+- **Hardening** — Optional **CORS** and per-IP **rate limit**; chi **request ID** + request logging.
 
 ---
 
@@ -81,11 +85,16 @@ air
 
 ## Environment variables
 
-| Variable     | Description                                     | Default                                                                             |
-| ------------ | ----------------------------------------------- | ----------------------------------------------------------------------------------- |
-| `PORT`       | HTTP listen address                             | `:3000`                                                                             |
-| `DB_ADDR`    | PostgreSQL DSN (URL or `lib/pq` key=value form) | `postgres://postgres:postgres@localhost:5433/boxing-gym-management?sslmode=disable` |
-| `JWT_SECRET` | HMAC secret for signing tokens                  | `secret` (change in production)                                                     |
+| Variable | Description | Default |
+| -------- | ----------- | ------- |
+| `PORT` | HTTP listen address | `:3000` |
+| `DB_ADDR` | PostgreSQL DSN (URL or `lib/pq` key=value form) | `postgres://postgres:postgres@localhost:5433/boxing-gym-management?sslmode=disable` |
+| `JWT_SECRET` | HMAC secret for signing access tokens | `secret` (change in production) |
+| `JWT_ACCESS_TTL_MINUTES` | Access JWT lifetime | `15` |
+| `JWT_REFRESH_TTL_DAYS` | Refresh token storage lifetime | `7` |
+| `CORS_ALLOWED_ORIGINS` | Comma-separated allowed browser origins (empty = CORS middleware off) | *(empty)* |
+| `RATE_LIMIT_RPM` | Max requests per minute per IP (`0` = off) | `0` |
+| `DEV_RETURN_PASSWORD_RESET_TOKEN` | If `true`, `POST /auth/forgot-password` includes `reset_token` in JSON (dev only) | `false` |
 
 ---
 
@@ -96,25 +105,33 @@ All JSON success responses use an envelope: `{ "success": true, "message": "..."
 Protected routes expect:
 
 ```http
-Authorization: Bearer <token>
+Authorization: Bearer <access_token>
 ```
+
+OpenAPI sketch: `GET /api/v1/openapi.yaml` (import into Swagger UI or an editor).
 
 ### Auth (no JWT required)
 
-| Method | Path                    | Description                                                                   |
-| ------ | ----------------------- | ----------------------------------------------------------------------------- |
-| `POST` | `/api/v1/auth/register` | Body: `{ "email", "password" }` (min 8 chars). New users get role **viewer**. |
-| `POST` | `/api/v1/auth/login`    | Body: `{ "email", "password" }`. Returns token and user (no password fields). |
+| Method | Path | Description |
+| ------ | ---- | ----------- |
+| `POST` | `/api/v1/auth/register` | `{ "email", "password" }` (min 8). Role **viewer**. Returns `access_token`, `refresh_token`, `token` (alias of access), `expires_in`, `user`. |
+| `POST` | `/api/v1/auth/login` | Same response shape as register. Locked users get `403`. |
+| `POST` | `/api/v1/auth/refresh` | `{ "refresh_token" }` — rotates refresh, returns new pair. |
+| `POST` | `/api/v1/auth/forgot-password` | `{ "email" }` — always `200`; creates reset token (see `DEV_RETURN_PASSWORD_RESET_TOKEN`). |
+| `POST` | `/api/v1/auth/reset-password` | `{ "token", "new_password" }` — revokes refresh sessions for that user. |
 
 ### Fighters (JWT + role)
 
-| Method   | Path                                  | Roles                | Notes                                                  |
-| -------- | ------------------------------------- | -------------------- | ------------------------------------------------------ |
-| `GET`    | `/api/v1/fighters/all`                | viewer, staff, admin | Query: `limit`, `page` or `offset`                     |
-| `GET`    | `/api/v1/fighters/{id}`               | viewer, staff, admin |                                                        |
-| `POST`   | `/api/v1/fighters/create`             | staff, admin         | JSON body: name, age, weight, wins, losses, trainer_id |
-| `PUT`    | `/api/v1/fighters/profile/update?id=` | staff, admin         | Partial updates supported                              |
-| `DELETE` | `/api/v1/fighters/profile/delete?id=` | staff, admin         |                                                        |
+| Method | Path | Roles | Notes |
+| ------ | ---- | ----- | ----- |
+| `GET` | `/api/v1/fighters/all` | viewer+ | `limit`, `page` / `offset`, `q`, `weight_class`, `fighter_status`, `sort` (`name` \| `weight` \| `created_at`), `order` (`asc` \| `desc`). Includes `assistant_trainers`. |
+| `GET` | `/api/v1/fighters/export` | viewer+ | CSV; same filters as `/all`, cap 10k rows. |
+| `GET` | `/api/v1/fighters/{id}` | viewer+ | Profile + assistants. |
+| `POST` | `/api/v1/fighters/{id}/assistants` | staff, admin | `{ "trainer_id", "role": "assistant" \| "corner" }` |
+| `DELETE` | `/api/v1/fighters/{id}/assistants/{trainerID}` | staff, admin | |
+| `POST` | `/api/v1/fighters/create` | staff, admin | Extended optional: `health_notes`, `contract_end`, emergency contacts, `weight_class`, `fighter_status`, `license_number`. |
+| `PUT` | `/api/v1/fighters/profile/update?id=` | staff, admin | Partial updates |
+| `DELETE` | `/api/v1/fighters/profile/delete?id=` | staff, admin | |
 
 ### Trainers (JWT + role)
 
@@ -126,17 +143,42 @@ Authorization: Bearer <token>
 | `PUT`    | `/api/v1/trainers/profile/update?id=` | staff, admin         | Partial updates                                |
 | `DELETE` | `/api/v1/trainers/profile/delete?id=` | staff, admin         |                                                |
 
+### Operations (JWT)
+
+| Method | Path | Roles | Notes |
+| ------ | ---- | ----- | ----- |
+| `GET` | `/api/v1/schedule/events` | viewer+ | Query `from`, `to` (RFC3339) |
+| `GET` | `/api/v1/schedule/events/{id}` | viewer+ | |
+| `POST` | `/api/v1/schedule/events` | staff, admin | Ring/mat/general bookings; overlap rejected |
+| `PUT` | `/api/v1/schedule/events/{id}` | staff, admin | |
+| `DELETE` | `/api/v1/schedule/events/{id}` | staff, admin | |
+| `GET` | `/api/v1/attendance` | viewer+ | `?gym_date=YYYY-MM-DD` (default today UTC) |
+| `POST` | `/api/v1/attendance` | staff, admin | Upsert attendance row |
+| `DELETE` | `/api/v1/attendance/{id}` | staff, admin | |
+| `GET` | `/api/v1/announcements/active` | viewer+ | Non-expired |
+| `GET` | `/api/v1/announcements/all` | staff, admin | |
+| `POST` | `/api/v1/announcements` | staff, admin | |
+| `PUT` | `/api/v1/announcements/{id}` | staff, admin | `expires_at` empty string clears expiry |
+| `DELETE` | `/api/v1/announcements/{id}` | staff, admin | |
+
+### Admin (JWT, **admin** only)
+
+| Method | Path | Description |
+| ------ | ---- | ----------- |
+| `GET` | `/api/v1/admin/users` | Paginated user list (`limit`, `page` / `offset`) |
+| `PATCH` | `/api/v1/admin/users/{id}` | `{ "role"?, "locked"?, "locked_reason"? }` |
+
 ---
 
 ## Roles
 
-| Role       | Access                                                           |
-| ---------- | ---------------------------------------------------------------- |
-| **viewer** | Read fighters and trainers only (default for self-registration). |
-| **staff**  | Read + create / update / delete fighters and trainers.           |
-| **admin**  | Same as staff (extend in code if you need admin-only features).  |
+| Role       | Access |
+| ---------- | ------ |
+| **viewer** | Read fighters, trainers, schedule, attendance, announcements (active). |
+| **staff**  | Viewer + mutations on fighters, trainers, schedule, attendance, announcements. |
+| **admin**  | Staff + `GET/PATCH /admin/users`. |
 
-Grant **staff** or **admin** by updating the `users.role` column in the database for the relevant account.
+You can still change roles in SQL; the admin API updates `users` without a direct DB client.
 
 ---
 
@@ -153,10 +195,11 @@ internal/
   middleware/        # auth + RBAC
   repository/        # SQL/data access
   routes/            # chi route registration
+  apidocs/           # embedded OpenAPI YAML
   static/            # embedded dashboard (index.html)
   utils/             # JSON helpers, errors
 migrations/
-  init/              # runs on first Postgres container init
+  init/              # runs on first Postgres container init (includes `005_features.sql` on new DBs)
   003_reset_seed.sql # optional manual reset / seed (use with care)
 ```
 
@@ -165,6 +208,7 @@ migrations/
 ## Migrations
 
 - **`migrations/init/`** — Executed when the Postgres data volume is **empty** (Docker `docker-entrypoint-initdb.d`). For a clean slate, remove the Compose volume and bring the stack up again.
+- **`005_features.sql`** — Adds operations tables, fighter profile columns, refresh/password-reset tokens, `users.locked`. On an **existing** database that was created before this file existed, run that SQL manually once (or migrate with your own tool).
 - **`migrations/003_reset_seed.sql`** — Optional script for resets; review before running against any database you care about.
 
 ---

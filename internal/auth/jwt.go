@@ -17,9 +17,20 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
-const defaultTokenTTL = 24 * time.Hour
+func accessTTL() time.Duration {
+	if config.App.JWT.AccessTTL > 0 {
+		return config.App.JWT.AccessTTL
+	}
+	return 15 * time.Minute
+}
 
-func NewToken(userID, role string) (string, error) {
+// AccessExpiresInSeconds returns the access token lifetime in whole seconds.
+func AccessExpiresInSeconds() int {
+	return int(accessTTL().Seconds())
+}
+
+// NewAccessToken issues a short-lived JWT (access token).
+func NewAccessToken(userID, role string) (string, error) {
 	if config.App.JWT.Secret == "" {
 		return "", errors.New("jwt secret is not configured")
 	}
@@ -28,13 +39,18 @@ func NewToken(userID, role string) (string, error) {
 		UserID: userID,
 		Role:   role,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(now.Add(defaultTokenTTL)),
+			ExpiresAt: jwt.NewNumericDate(now.Add(accessTTL())),
 			IssuedAt:  jwt.NewNumericDate(now),
 			NotBefore: jwt.NewNumericDate(now),
 		},
 	}
 	t := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return t.SignedString([]byte(config.App.JWT.Secret))
+}
+
+// NewToken is an alias for NewAccessToken.
+func NewToken(userID, role string) (string, error) {
+	return NewAccessToken(userID, role)
 }
 
 func ParseToken(tokenString string) (*Claims, error) {

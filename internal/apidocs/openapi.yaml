@@ -1,0 +1,93 @@
+openapi: 3.0.3
+info:
+  title: Boxing Gym Management API
+  version: "1.0"
+servers:
+  - url: /api/v1
+paths:
+  /healthcheck:
+    get:
+      summary: Health check (root mount, not under /api/v1 in some deployments)
+  /auth/login:
+    post:
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email: { type: string }
+                password: { type: string }
+      responses:
+        "200":
+          description: access_token, refresh_token, token (alias), expires_in, user
+  /auth/refresh:
+    post:
+      summary: Refresh tokens
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refresh_token: { type: string }
+  /fighters/all:
+    get:
+      summary: List fighters (pagination, filters)
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer }
+        - name: page
+          in: query
+          schema: { type: integer }
+        - name: q
+          in: query
+          schema: { type: string }
+        - name: weight_class
+          in: query
+          schema: { type: string }
+        - name: fighter_status
+          in: query
+          schema: { type: string, enum: [amateur, pro] }
+        - name: sort
+          in: query
+          schema: { type: string, enum: [name, weight, created_at] }
+        - name: order
+          in: query
+          schema: { type: string, enum: [asc, desc] }
+      security: [{ bearerAuth: [] }]
+  /fighters/export:
+    get:
+      summary: Export fighters CSV (same query filters as /all, max 10000 rows)
+      security: [{ bearerAuth: [] }]
+  /schedule/events:
+    get:
+      summary: List schedule events
+      security: [{ bearerAuth: [] }]
+    post:
+      summary: Create event (staff/admin)
+      security: [{ bearerAuth: [] }]
+  /attendance:
+    get:
+      summary: List attendance by gym_date (default today)
+      security: [{ bearerAuth: [] }]
+    post:
+      summary: Upsert attendance (staff/admin)
+      security: [{ bearerAuth: [] }]
+  /announcements/active:
+    get:
+      summary: Non-expired announcements
+      security: [{ bearerAuth: [] }]
+  /admin/users:
+    get:
+      summary: List users (admin)
+      security: [{ bearerAuth: [] }]
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

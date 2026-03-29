@@ -20,7 +20,10 @@ func (f *fighterRoutes) Register(r chi.Router, authenticate func(http.Handler) h
 	r.Route("/fighters", func(r chi.Router) {
 		r.Group(func(r chi.Router) {
 			r.Use(authenticate)
+			r.With(read).Get("/export", f.handler.Fighter.ExportFightersCSV)
 			r.With(read).Get("/all", f.handler.Fighter.GetAllFighters)
+			r.With(write).Post("/{id}/assistants", f.handler.Fighter.AddAssistantTrainer)
+			r.With(write).Delete("/{id}/assistants/{trainerID}", f.handler.Fighter.RemoveAssistantTrainer)
 			r.With(read).Get("/{id}", f.handler.Fighter.GetFighterByID)
 		})
 		r.Group(func(r chi.Router) {

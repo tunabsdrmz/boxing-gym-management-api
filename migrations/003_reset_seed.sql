@@ -11,6 +11,30 @@
 
 BEGIN;
 
+-- Clear dependent tables when extended schema (005_features) is present.
+DO $truncate_ops$
+BEGIN
+	IF to_regclass('public.fighter_assistant_trainers') IS NOT NULL THEN
+		EXECUTE 'TRUNCATE TABLE fighter_assistant_trainers CASCADE';
+	END IF;
+	IF to_regclass('public.attendance_records') IS NOT NULL THEN
+		EXECUTE 'TRUNCATE TABLE attendance_records CASCADE';
+	END IF;
+	IF to_regclass('public.schedule_events') IS NOT NULL THEN
+		EXECUTE 'TRUNCATE TABLE schedule_events CASCADE';
+	END IF;
+	IF to_regclass('public.announcements') IS NOT NULL THEN
+		EXECUTE 'TRUNCATE TABLE announcements CASCADE';
+	END IF;
+	IF to_regclass('public.refresh_tokens') IS NOT NULL THEN
+		EXECUTE 'TRUNCATE TABLE refresh_tokens CASCADE';
+	END IF;
+	IF to_regclass('public.password_reset_tokens') IS NOT NULL THEN
+		EXECUTE 'TRUNCATE TABLE password_reset_tokens CASCADE';
+	END IF;
+END
+$truncate_ops$;
+
 TRUNCATE TABLE fighters, trainers CASCADE;
 
 -- Skip if auth migration not applied yet (`users` table missing).
