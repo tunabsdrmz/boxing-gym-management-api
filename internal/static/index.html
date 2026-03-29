@@ -1,0 +1,1247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Boxing Gym — Management</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-deep: #050508;
+      --bg-elevated: rgba(18, 18, 24, 0.72);
+      --surface: rgba(255, 255, 255, 0.04);
+      --surface-hover: rgba(255, 255, 255, 0.07);
+      --border: rgba(255, 255, 255, 0.09);
+      --border-strong: rgba(255, 255, 255, 0.14);
+      --text: #f4f4f5;
+      --muted: #a1a1aa;
+      --muted-dim: #71717a;
+      --accent-from: #6366f1;
+      --accent-to: #ec4899;
+      --success: #34d399;
+      --success-bg: rgba(52, 211, 153, 0.12);
+      --danger: #fb7185;
+      --danger-bg: rgba(251, 113, 133, 0.12);
+      --radius: 14px;
+      --radius-sm: 10px;
+      --shadow-lg: 0 24px 80px rgba(0, 0, 0, 0.55);
+      --blur: 20px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    html { -webkit-font-smoothing: antialiased; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "DM Sans", system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.55;
+      color: var(--text);
+      background-color: var(--bg-deep);
+      background-image:
+        radial-gradient(ellipse 120% 80% at 50% -20%, rgba(99, 102, 241, 0.22), transparent 50%),
+        radial-gradient(ellipse 80% 50% at 100% 50%, rgba(236, 72, 153, 0.08), transparent 45%),
+        radial-gradient(ellipse 60% 40% at 0% 80%, rgba(99, 102, 241, 0.06), transparent 40%);
+      background-attachment: fixed;
+    }
+
+    .app-header {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem clamp(1.25rem, 4vw, 2.5rem);
+      border-bottom: 1px solid var(--border);
+      background: rgba(5, 5, 8, 0.75);
+      backdrop-filter: blur(var(--blur));
+      -webkit-backdrop-filter: blur(var(--blur));
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .brand-mark {
+      width: 38px;
+      height: 38px;
+      border-radius: 11px;
+      background: linear-gradient(135deg, var(--accent-from), var(--accent-to));
+      box-shadow: 0 8px 32px rgba(99, 102, 241, 0.35);
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+      font-size: 0.95rem;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+      gap: 0.1rem;
+    }
+
+    .brand-text strong {
+      font-size: 1rem;
+      font-weight: 600;
+      letter-spacing: -0.03em;
+    }
+
+    .brand-text span {
+      font-size: 0.72rem;
+      color: var(--muted-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-weight: 500;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .user-pill {
+      display: none;
+      align-items: center;
+      gap: 0.65rem;
+      padding: 0.35rem 0.35rem 0.35rem 0.85rem;
+      border-radius: 999px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+    }
+
+    .user-pill.visible { display: flex; }
+
+    .user-pill .email {
+      font-size: 0.82rem;
+      color: var(--muted);
+      max-width: 180px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .badge-role {
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 0.35rem 0.6rem;
+      border-radius: 999px;
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(236, 72, 153, 0.2));
+      border: 1px solid var(--border-strong);
+      color: #e4e4e7;
+    }
+
+    main {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: clamp(1.25rem, 4vw, 2.25rem);
+      padding-bottom: 4rem;
+    }
+
+    .flash {
+      position: fixed;
+      top: 5.5rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(-12px);
+      z-index: 50;
+      max-width: min(420px, calc(100% - 2rem));
+      padding: 0.85rem 1.15rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.875rem;
+      font-weight: 500;
+      box-shadow: var(--shadow-lg);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+
+    .flash.visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+      pointer-events: auto;
+    }
+
+    .flash.ok {
+      background: var(--success-bg);
+      border: 1px solid rgba(52, 211, 153, 0.35);
+      color: #6ee7b7;
+    }
+
+    .flash.err {
+      background: var(--danger-bg);
+      border: 1px solid rgba(251, 113, 133, 0.4);
+      color: #fda4af;
+    }
+
+    .card {
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--bg-elevated);
+      backdrop-filter: blur(var(--blur));
+      -webkit-backdrop-filter: blur(var(--blur));
+      box-shadow: 0 4px 48px rgba(0, 0, 0, 0.35);
+      padding: clamp(1.35rem, 3vw, 1.85rem);
+      margin-bottom: 1.5rem;
+    }
+
+    .card-head {
+      margin-bottom: 1.35rem;
+    }
+
+    .card-head h2 {
+      margin: 0 0 0.35rem;
+      font-size: 1.35rem;
+      font-weight: 600;
+      letter-spacing: -0.03em;
+    }
+
+    .card-head p {
+      margin: 0;
+      font-size: 0.875rem;
+      color: var(--muted);
+    }
+
+    .api-hint {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-top: 0.65rem;
+    }
+
+    code.inline {
+      font-family: ui-monospace, monospace;
+      font-size: 0.78rem;
+      padding: 0.2rem 0.45rem;
+      border-radius: 6px;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid var(--border);
+      color: #d4d4d8;
+      word-break: break-all;
+    }
+
+    .segmented {
+      display: inline-flex;
+      padding: 4px;
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid var(--border);
+      gap: 4px;
+      margin-bottom: 1.25rem;
+    }
+
+    .segmented button {
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      padding: 0.5rem 1.1rem;
+      border-radius: 9px;
+      font-weight: 600;
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+      font-family: inherit;
+    }
+
+    .segmented button:hover { color: var(--text); }
+
+    .segmented button.active {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.35), rgba(236, 72, 153, 0.22));
+      color: var(--text);
+      box-shadow: 0 2px 12px rgba(99, 102, 241, 0.2);
+    }
+
+    .grid {
+      display: grid;
+      gap: 1rem;
+    }
+
+    @media (min-width: 560px) {
+      .grid-2 { grid-template-columns: 1fr 1fr; }
+    }
+
+    .field label {
+      display: block;
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted-dim);
+      margin-bottom: 0.4rem;
+    }
+
+    .field input,
+    .field select,
+    .field textarea {
+      width: 100%;
+      font: inherit;
+      color: var(--text);
+      padding: 0.65rem 0.85rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: rgba(0, 0, 0, 0.35);
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .field input::placeholder { color: var(--muted-dim); }
+
+    .field input:focus,
+    .field select:focus,
+    .field textarea:focus {
+      outline: none;
+      border-color: rgba(99, 102, 241, 0.55);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      font-family: inherit;
+      font-weight: 600;
+      font-size: 0.875rem;
+      padding: 0.65rem 1.25rem;
+      border-radius: var(--radius-sm);
+      border: none;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.2s, opacity 0.2s;
+    }
+
+    .btn:active:not(:disabled) { transform: scale(0.98); }
+
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent-from), var(--accent-to));
+      color: #fff;
+      box-shadow: 0 8px 28px rgba(99, 102, 241, 0.35);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      box-shadow: 0 10px 36px rgba(236, 72, 153, 0.25);
+    }
+
+    .btn-ghost {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-ghost:hover:not(:disabled) {
+      background: var(--surface-hover);
+      border-color: var(--border-strong);
+    }
+
+    .btn-danger {
+      background: rgba(251, 113, 133, 0.15);
+      color: #fda4af;
+      border: 1px solid rgba(251, 113, 133, 0.35);
+    }
+
+    .btn-danger:hover:not(:disabled) {
+      background: rgba(251, 113, 133, 0.22);
+    }
+
+    .btn-sm {
+      padding: 0.4rem 0.75rem;
+      font-size: 0.78rem;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      gap: 0.75rem;
+      margin-bottom: 1.15rem;
+    }
+
+    .toolbar .field { flex: 0 0 auto; min-width: 88px; }
+
+    .toolbar .grow { flex: 1; min-width: 160px; }
+
+    .panel-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted-dim);
+      margin: 0 0 1rem;
+    }
+
+    .detail-preview {
+      margin: 0.75rem 0 1rem;
+      padding: 1rem;
+      border-radius: var(--radius-sm);
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid var(--border);
+      font-family: ui-monospace, monospace;
+      font-size: 0.75rem;
+      color: var(--muted);
+      white-space: pre-wrap;
+      word-break: break-all;
+      max-height: 220px;
+      overflow: auto;
+    }
+
+    .table-wrap {
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+    }
+
+    thead {
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    th {
+      text-align: left;
+      padding: 0.75rem 1rem;
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--muted-dim);
+      border-bottom: 1px solid var(--border);
+    }
+
+    td {
+      padding: 0.8rem 1rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+
+    tbody tr {
+      transition: background 0.15s;
+    }
+
+    tbody tr:hover {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    tbody tr:last-child td { border-bottom: none; }
+
+    td code {
+      font-family: ui-monospace, monospace;
+      font-size: 0.72rem;
+      color: #c4b5fd;
+    }
+
+    .cell-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+
+    .pagination-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.65rem;
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .hidden { display: none !important; }
+
+    .hint-box {
+      margin-top: 1.25rem;
+      padding: 0.85rem 1rem;
+      border-radius: var(--radius-sm);
+      background: rgba(99, 102, 241, 0.08);
+      border: 1px solid rgba(99, 102, 241, 0.2);
+      font-size: 0.8rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .hint-box strong { color: #e4e4e7; }
+
+    #modal-edit {
+      max-width: 440px;
+      width: calc(100% - 2rem);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius);
+      background: rgba(12, 12, 18, 0.95);
+      backdrop-filter: blur(24px);
+      color: var(--text);
+      padding: 0;
+      box-shadow: var(--shadow-lg);
+    }
+
+    #modal-edit::backdrop {
+      background: rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(6px);
+    }
+
+    .modal-inner {
+      padding: 1.5rem;
+    }
+
+    .modal-inner h3 {
+      margin: 0 0 1.15rem;
+      font-size: 1.1rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    .modal-inner .field { margin-bottom: 0.85rem; }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.5rem;
+      margin-top: 1.25rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .auth-layout {
+      max-width: 520px;
+      margin: 0 auto;
+    }
+
+    @media (min-width: 900px) {
+      .dashboard-grid {
+        display: grid;
+        grid-template-columns: 200px 1fr;
+        gap: 1.5rem;
+        align-items: start;
+      }
+
+      .dashboard-nav {
+        position: sticky;
+        top: 5.5rem;
+      }
+
+      .dashboard-nav .segmented {
+        flex-direction: column;
+        width: 100%;
+      }
+
+      .dashboard-nav .segmented button {
+        width: 100%;
+        text-align: left;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-mark">BG</div>
+      <div class="brand-text">
+        <strong>Boxing Gym</strong>
+        <span>Management</span>
+      </div>
+    </div>
+    <div class="header-actions">
+      <div id="header-user" class="user-pill">
+        <span id="user-email" class="email"></span>
+        <span id="user-role" class="badge-role"></span>
+        <button type="button" class="btn btn-ghost btn-sm" id="btn-logout">Sign out</button>
+      </div>
+    </div>
+  </header>
+
+  <div id="flash" class="flash" role="status" aria-live="polite"></div>
+
+  <main>
+    <section id="auth-section" class="card auth-layout">
+      <div class="card-head">
+        <h2>Welcome back</h2>
+        <p>Sign in to manage fighters and trainers. Protected routes use JWT Bearer tokens.</p>
+        <div class="api-hint">
+          <span style="color:var(--muted-dim);font-size:0.8rem;">API base</span>
+          <code class="inline" id="api-base-label"></code>
+        </div>
+      </div>
+      <div class="segmented" role="tablist">
+        <button type="button" class="active" data-auth-tab="login" role="tab">Sign in</button>
+        <button type="button" data-auth-tab="register" role="tab">Create account</button>
+      </div>
+      <div id="panel-login" class="grid grid-2">
+        <div class="field" style="grid-column:1/-1;">
+          <label for="login-email">Email</label>
+          <input id="login-email" type="email" autocomplete="username" placeholder="you@example.com" />
+        </div>
+        <div class="field" style="grid-column:1/-1;">
+          <label for="login-password">Password</label>
+          <input id="login-password" type="password" autocomplete="current-password" placeholder="••••••••" />
+        </div>
+        <div style="grid-column:1/-1;">
+          <button type="button" class="btn btn-primary" id="btn-login" style="width:100%;">Sign in</button>
+        </div>
+      </div>
+      <div id="panel-register" class="grid grid-2 hidden">
+        <div class="field" style="grid-column:1/-1;">
+          <label for="reg-email">Email</label>
+          <input id="reg-email" type="email" autocomplete="username" placeholder="you@example.com" />
+        </div>
+        <div class="field" style="grid-column:1/-1;">
+          <label for="reg-password">Password</label>
+          <input id="reg-password" type="password" autocomplete="new-password" placeholder="At least 8 characters" />
+        </div>
+        <div style="grid-column:1/-1;">
+          <button type="button" class="btn btn-primary" id="btn-register" style="width:100%;">Create account</button>
+        </div>
+      </div>
+      <div class="hint-box">
+        New accounts receive the <strong>viewer</strong> role (read-only lists and details). Ask an administrator to grant <code class="inline">staff</code> or <code class="inline">admin</code> in the database for create, update, and delete.
+      </div>
+    </section>
+
+    <section id="app-section" class="hidden">
+      <div class="dashboard-grid">
+        <nav class="dashboard-nav" aria-label="Primary">
+          <p class="panel-title" style="margin-top:0;">Directory</p>
+          <div class="segmented" id="entity-tabs" style="margin-bottom:0;">
+            <button type="button" class="active" data-entity="fighters">Fighters</button>
+            <button type="button" data-entity="trainers">Trainers</button>
+          </div>
+        </nav>
+        <div>
+          <div id="fighters-panel" class="card" style="margin-bottom:1.5rem;">
+            <div class="card-head">
+              <h2>Fighters</h2>
+              <p>Roster, stats, and trainer assignment.</p>
+            </div>
+            <div class="toolbar">
+              <div class="field">
+                <label for="f-limit">Per page</label>
+                <input id="f-limit" type="number" value="10" min="1" />
+              </div>
+              <div class="field">
+                <label for="f-page">Page</label>
+                <input id="f-page" type="number" value="1" min="1" />
+              </div>
+              <button type="button" class="btn btn-ghost" id="f-load">Refresh</button>
+            </div>
+            <div id="f-write" class="hidden grid grid-2" style="margin-bottom:1.25rem;padding-bottom:1.25rem;border-bottom:1px solid var(--border);">
+              <p class="panel-title" style="grid-column:1/-1;margin-bottom:0;">Add fighter</p>
+              <div class="field">
+                <label for="f-name">Name</label>
+                <input id="f-name" placeholder="Full name" />
+              </div>
+              <div class="field">
+                <label for="f-age">Age</label>
+                <input id="f-age" type="number" placeholder="0" />
+              </div>
+              <div class="field">
+                <label for="f-weight">Weight</label>
+                <input id="f-weight" type="number" step="0.1" placeholder="0.0" />
+              </div>
+              <div class="field">
+                <label for="f-wins">Wins</label>
+                <input id="f-wins" type="number" value="0" />
+              </div>
+              <div class="field">
+                <label for="f-losses">Losses</label>
+                <input id="f-losses" type="number" value="0" />
+              </div>
+              <div class="field" style="grid-column:1/-1;">
+                <label for="f-trainer-id">Trainer</label>
+                <select id="f-trainer-id"></select>
+              </div>
+              <div style="grid-column:1/-1;">
+                <button type="button" class="btn btn-primary" id="f-create">Create fighter</button>
+              </div>
+            </div>
+            <p class="panel-title">Lookup</p>
+            <div class="toolbar">
+              <div class="field grow">
+                <label for="f-detail-id">Fighter ID</label>
+                <input id="f-detail-id" placeholder="UUID" />
+              </div>
+              <button type="button" class="btn btn-ghost" id="f-get-one">Fetch</button>
+            </div>
+            <pre id="f-detail-json" class="detail-preview"></pre>
+            <p class="panel-title">Roster</p>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Age</th>
+                    <th>Weight</th>
+                    <th>W/L</th>
+                    <th>Trainer</th>
+                    <th id="f-actions-th" class="hidden">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="f-tbody"></tbody>
+              </table>
+            </div>
+            <div class="pagination-bar" id="f-pagination"></div>
+          </div>
+
+          <div id="trainers-panel" class="card hidden">
+            <div class="card-head">
+              <h2>Trainers</h2>
+              <p>Coaches, specializations, and linked fighters.</p>
+            </div>
+            <div class="toolbar">
+              <div class="field">
+                <label for="t-limit">Per page</label>
+                <input id="t-limit" type="number" value="10" min="1" />
+              </div>
+              <div class="field">
+                <label for="t-page">Page</label>
+                <input id="t-page" type="number" value="1" min="1" />
+              </div>
+              <button type="button" class="btn btn-ghost" id="t-load">Refresh</button>
+            </div>
+            <div id="t-write" class="hidden grid grid-2" style="margin-bottom:1.25rem;padding-bottom:1.25rem;border-bottom:1px solid var(--border);">
+              <p class="panel-title" style="grid-column:1/-1;margin-bottom:0;">Add trainer</p>
+              <div class="field">
+                <label for="t-name">Name</label>
+                <input id="t-name" placeholder="Full name" />
+              </div>
+              <div class="field">
+                <label for="t-age">Age</label>
+                <input id="t-age" type="number" />
+              </div>
+              <div class="field" style="grid-column:1/-1;">
+                <label for="t-spec">Specializations</label>
+                <input id="t-spec" placeholder="e.g. boxing, conditioning" />
+              </div>
+              <div style="grid-column:1/-1;">
+                <button type="button" class="btn btn-primary" id="t-create">Create trainer</button>
+              </div>
+            </div>
+            <p class="panel-title">Lookup</p>
+            <div class="toolbar">
+              <div class="field grow">
+                <label for="t-detail-id">Trainer ID</label>
+                <input id="t-detail-id" placeholder="UUID" />
+              </div>
+              <button type="button" class="btn btn-ghost" id="t-get-one">Fetch</button>
+            </div>
+            <pre id="t-detail-json" class="detail-preview"></pre>
+            <p class="panel-title">Staff</p>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Age</th>
+                    <th>Specialization</th>
+                    <th id="t-actions-th" class="hidden">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="t-tbody"></tbody>
+              </table>
+            </div>
+            <div class="pagination-bar" id="t-pagination"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="modal-edit" aria-labelledby="modal-title">
+    <form method="dialog" id="modal-form" class="modal-inner">
+      <h3 id="modal-title">Edit</h3>
+      <div id="modal-body"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" id="modal-cancel">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="modal-save">Save changes</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script>
+(function () {
+  const API = (window.location.origin || '') + '/api/v1';
+  const LS_TOKEN = 'bgm_token';
+  const LS_USER = 'bgm_user';
+
+  function flash(msg, ok) {
+    const el = document.getElementById('flash');
+    el.textContent = msg;
+    el.className = 'flash ' + (ok ? 'ok' : 'err') + ' visible';
+    clearTimeout(flash._t);
+    flash._t = setTimeout(function () { el.classList.remove('visible'); }, 5500);
+  }
+
+  function getToken() { return localStorage.getItem(LS_TOKEN); }
+  function getUser() {
+    try { return JSON.parse(localStorage.getItem(LS_USER) || 'null'); } catch (_) { return null; }
+  }
+  function setSession(token, user) {
+    localStorage.setItem(LS_TOKEN, token);
+    localStorage.setItem(LS_USER, JSON.stringify(user));
+  }
+  function clearSession() {
+    localStorage.removeItem(LS_TOKEN);
+    localStorage.removeItem(LS_USER);
+  }
+
+  function canWrite() {
+    const u = getUser();
+    if (!u || !u.role) return false;
+    return u.role === 'staff' || u.role === 'admin';
+  }
+
+  async function api(path, opts) {
+    const headers = Object.assign({ 'Content-Type': 'application/json' }, (opts && opts.headers) || {});
+    const t = getToken();
+    if (t) headers['Authorization'] = 'Bearer ' + t;
+    const res = await fetch(API + path, Object.assign({}, opts, { headers }));
+    const text = await res.text();
+    let body = null;
+    try { body = text ? JSON.parse(text) : null; } catch (_) { body = { raw: text }; }
+    if (!res.ok) {
+      const errMsg = (body && body.error) || res.statusText || 'Request failed';
+      const e = new Error(errMsg);
+      e.status = res.status;
+      e.body = body;
+      throw e;
+    }
+    return body;
+  }
+
+  function updateUIAuth() {
+    const token = getToken();
+    const user = getUser();
+    document.getElementById('api-base-label').textContent = API;
+    const authSec = document.getElementById('auth-section');
+    const appSec = document.getElementById('app-section');
+    const headerUser = document.getElementById('header-user');
+    if (token && user) {
+      authSec.classList.add('hidden');
+      appSec.classList.remove('hidden');
+      headerUser.classList.add('visible');
+      document.getElementById('user-email').textContent = user.email || '';
+      document.getElementById('user-role').textContent = user.role || '';
+      const write = canWrite();
+      document.getElementById('f-write').classList.toggle('hidden', !write);
+      document.getElementById('t-write').classList.toggle('hidden', !write);
+      document.getElementById('f-actions-th').classList.toggle('hidden', !write);
+      document.getElementById('t-actions-th').classList.toggle('hidden', !write);
+    } else {
+      authSec.classList.remove('hidden');
+      appSec.classList.add('hidden');
+      headerUser.classList.remove('visible');
+    }
+  }
+
+  document.querySelectorAll('[data-auth-tab]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('[data-auth-tab]').forEach(function (b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      var tab = btn.getAttribute('data-auth-tab');
+      document.getElementById('panel-login').classList.toggle('hidden', tab !== 'login');
+      document.getElementById('panel-register').classList.toggle('hidden', tab !== 'register');
+    });
+  });
+
+  document.getElementById('btn-login').addEventListener('click', async function () {
+    try {
+      const email = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-password').value;
+      const j = await api('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
+      if (!j.success || !j.data) throw new Error(j.message || 'Invalid response');
+      setSession(j.data.token, j.data.user);
+      flash(j.message || 'Signed in successfully', true);
+      updateUIAuth();
+      loadTrainerOptions();
+      loadFighters();
+      loadTrainers();
+    } catch (e) {
+      flash(e.message, false);
+    }
+  });
+
+  document.getElementById('btn-register').addEventListener('click', async function () {
+    try {
+      const email = document.getElementById('reg-email').value.trim();
+      const password = document.getElementById('reg-password').value;
+      const j = await api('/auth/register', { method: 'POST', body: JSON.stringify({ email, password }) });
+      if (!j.success || !j.data) throw new Error(j.message || 'Invalid response');
+      setSession(j.data.token, j.data.user);
+      flash(j.message || 'Account created', true);
+      updateUIAuth();
+      loadTrainerOptions();
+      loadFighters();
+      loadTrainers();
+    } catch (e) {
+      flash(e.message, false);
+    }
+  });
+
+  document.getElementById('btn-logout').addEventListener('click', function () {
+    clearSession();
+    updateUIAuth();
+    flash('Signed out', true);
+  });
+
+  document.querySelectorAll('[data-entity]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('[data-entity]').forEach(function (b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      var ent = btn.getAttribute('data-entity');
+      document.getElementById('fighters-panel').classList.toggle('hidden', ent !== 'fighters');
+      document.getElementById('trainers-panel').classList.toggle('hidden', ent !== 'trainers');
+    });
+  });
+
+  async function loadTrainerOptions() {
+    const sel = document.getElementById('f-trainer-id');
+    sel.innerHTML = '';
+    try {
+      const limit = 100;
+      const j = await api('/trainers/all?limit=' + limit + '&page=1');
+      const list = (j.data && j.data.trainers) || [];
+      list.forEach(function (tr) {
+        var o = document.createElement('option');
+        o.value = tr.id;
+        o.textContent = tr.name + ' (' + tr.id.slice(0, 8) + '…)';
+        sel.appendChild(o);
+      });
+      if (!list.length) {
+        var o = document.createElement('option');
+        o.value = '';
+        o.textContent = '— add a trainer first —';
+        sel.appendChild(o);
+      }
+    } catch (_) {
+      var o = document.createElement('option');
+      o.value = '';
+      o.textContent = 'Could not load trainers';
+      sel.appendChild(o);
+    }
+  }
+
+  function renderPagination(containerId, p, onPage) {
+    var el = document.getElementById(containerId);
+    if (!p) { el.textContent = ''; return; }
+    el.innerHTML = '';
+    var span = document.createElement('span');
+    span.textContent = p.total + ' total · page ' + p.page + ' of ' + (p.page_size || 0) + ' · ' + p.limit + ' per page';
+    el.appendChild(span);
+    var prev = document.createElement('button');
+    prev.type = 'button';
+    prev.className = 'btn btn-ghost btn-sm';
+    prev.textContent = 'Previous';
+    prev.disabled = p.page <= 1;
+    prev.onclick = function () { onPage(p.page - 1); };
+    var next = document.createElement('button');
+    next.type = 'button';
+    next.className = 'btn btn-ghost btn-sm';
+    next.textContent = 'Next';
+    next.disabled = p.page >= p.page_size;
+    next.onclick = function () { onPage(p.page + 1); };
+    el.appendChild(prev);
+    el.appendChild(next);
+  }
+
+  async function loadFighters(page) {
+    var lim = parseInt(document.getElementById('f-limit').value, 10) || 10;
+    var pg = page || parseInt(document.getElementById('f-page').value, 10) || 1;
+    document.getElementById('f-page').value = String(pg);
+    try {
+      const j = await api('/fighters/all?limit=' + lim + '&page=' + pg);
+      const data = j.data;
+      const rows = (data && data.fighters) || [];
+      const tbody = document.getElementById('f-tbody');
+      tbody.innerHTML = '';
+      const write = canWrite();
+      rows.forEach(function (f) {
+        var tr = document.createElement('tr');
+        tr.innerHTML =
+          '<td><code>' + f.id.slice(0, 8) + '…</code></td>' +
+          '<td>' + escapeHtml(f.name) + '</td>' +
+          '<td>' + f.age + '</td>' +
+          '<td>' + f.weight + '</td>' +
+          '<td>' + f.wins + ' / ' + f.losses + '</td>' +
+          '<td><code>' + (f.trainer_id ? f.trainer_id.slice(0, 8) + '…' : '—') + '</code></td>';
+        if (write) {
+          var td = document.createElement('td');
+          td.className = 'cell-actions';
+          var b1 = document.createElement('button');
+          b1.type = 'button';
+          b1.className = 'btn btn-ghost btn-sm';
+          b1.textContent = 'Edit';
+          b1.onclick = function () { openEditFighter(f); };
+          var b2 = document.createElement('button');
+          b2.type = 'button';
+          b2.className = 'btn btn-danger btn-sm';
+          b2.textContent = 'Delete';
+          b2.onclick = function () { deleteFighter(f.id); };
+          td.appendChild(b1);
+          td.appendChild(b2);
+          tr.appendChild(td);
+        }
+        tbody.appendChild(tr);
+      });
+      renderPagination('f-pagination', data && data.pagination, function (newPage) {
+        document.getElementById('f-page').value = String(newPage);
+        loadFighters(newPage);
+      });
+    } catch (e) {
+      flash(e.message, false);
+    }
+  }
+
+  async function loadTrainers(page) {
+    var lim = parseInt(document.getElementById('t-limit').value, 10) || 10;
+    var pg = page || parseInt(document.getElementById('t-page').value, 10) || 1;
+    document.getElementById('t-page').value = String(pg);
+    try {
+      const j = await api('/trainers/all?limit=' + lim + '&page=' + pg);
+      const data = j.data;
+      const rows = (data && data.trainers) || [];
+      const tbody = document.getElementById('t-tbody');
+      tbody.innerHTML = '';
+      const write = canWrite();
+      rows.forEach(function (t) {
+        var tr = document.createElement('tr');
+        var spec = (t.specialization || []).join(', ');
+        tr.innerHTML =
+          '<td><code>' + t.id.slice(0, 8) + '…</code></td>' +
+          '<td>' + escapeHtml(t.name) + '</td>' +
+          '<td>' + t.age + '</td>' +
+          '<td>' + escapeHtml(spec) + '</td>';
+        if (write) {
+          var td = document.createElement('td');
+          td.className = 'cell-actions';
+          var b1 = document.createElement('button');
+          b1.type = 'button';
+          b1.className = 'btn btn-ghost btn-sm';
+          b1.textContent = 'Edit';
+          b1.onclick = function () { openEditTrainer(t); };
+          var b2 = document.createElement('button');
+          b2.type = 'button';
+          b2.className = 'btn btn-danger btn-sm';
+          b2.textContent = 'Delete';
+          b2.onclick = function () { deleteTrainer(t.id); };
+          td.appendChild(b1);
+          td.appendChild(b2);
+          tr.appendChild(td);
+        }
+        tbody.appendChild(tr);
+      });
+      renderPagination('t-pagination', data && data.pagination, function (newPage) {
+        document.getElementById('t-page').value = String(newPage);
+        loadTrainers(newPage);
+      });
+    } catch (e) {
+      flash(e.message, false);
+    }
+  }
+
+  function escapeHtml(s) {
+    if (!s) return '';
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  document.getElementById('f-load').addEventListener('click', function () { loadFighters(); });
+  document.getElementById('t-load').addEventListener('click', function () { loadTrainers(); });
+
+  document.getElementById('f-get-one').addEventListener('click', async function () {
+    var id = document.getElementById('f-detail-id').value.trim();
+    if (!id) return flash('Enter an ID', false);
+    try {
+      const j = await api('/fighters/' + encodeURIComponent(id));
+      document.getElementById('f-detail-json').textContent = JSON.stringify(j.data, null, 2);
+      flash(j.message || 'Loaded', true);
+    } catch (e) {
+      document.getElementById('f-detail-json').textContent = '';
+      flash(e.message, false);
+    }
+  });
+
+  document.getElementById('t-get-one').addEventListener('click', async function () {
+    var id = document.getElementById('t-detail-id').value.trim();
+    if (!id) return flash('Enter an ID', false);
+    try {
+      const j = await api('/trainers/' + encodeURIComponent(id));
+      document.getElementById('t-detail-json').textContent = JSON.stringify(j.data, null, 2);
+      flash(j.message || 'Loaded', true);
+    } catch (e) {
+      document.getElementById('t-detail-json').textContent = '';
+      flash(e.message, false);
+    }
+  });
+
+  document.getElementById('f-create').addEventListener('click', async function () {
+    var body = {
+      name: document.getElementById('f-name').value.trim(),
+      age: parseInt(document.getElementById('f-age').value, 10),
+      weight: parseFloat(document.getElementById('f-weight').value),
+      wins: parseInt(document.getElementById('f-wins').value, 10) || 0,
+      losses: parseInt(document.getElementById('f-losses').value, 10) || 0,
+      trainer_id: document.getElementById('f-trainer-id').value.trim()
+    };
+    if (!body.name || !body.trainer_id) return flash('Name and trainer are required', false);
+    try {
+      const j = await api('/fighters/create', { method: 'POST', body: JSON.stringify(body) });
+      flash(j.message || 'Created', true);
+      loadFighters();
+      loadTrainerOptions();
+    } catch (e) {
+      flash(e.message, false);
+    }
+  });
+
+  document.getElementById('t-create').addEventListener('click', async function () {
+    var specRaw = document.getElementById('t-spec').value.trim();
+    var spec = specRaw ? specRaw.split(',').map(function (s) { return s.trim(); }).filter(Boolean) : [];
+    var body = {
+      name: document.getElementById('t-name').value.trim(),
+      age: parseInt(document.getElementById('t-age').value, 10),
+      specialization: spec
+    };
+    if (!body.name) return flash('Name is required', false);
+    try {
+      const j = await api('/trainers/create', { method: 'POST', body: JSON.stringify(body) });
+      flash(j.message || 'Created', true);
+      loadTrainers();
+      loadTrainerOptions();
+    } catch (e) {
+      flash(e.message, false);
+    }
+  });
+
+  async function deleteFighter(id) {
+    if (!confirm('Delete this fighter? This cannot be undone.')) return;
+    try {
+      const j = await api('/fighters/profile/delete?id=' + encodeURIComponent(id), { method: 'DELETE' });
+      flash(j.message || 'Deleted', true);
+      loadFighters();
+    } catch (e) {
+      flash(e.message, false);
+    }
+  }
+
+  async function deleteTrainer(id) {
+    if (!confirm('Delete this trainer? This cannot be undone.')) return;
+    try {
+      const j = await api('/trainers/profile/delete?id=' + encodeURIComponent(id), { method: 'DELETE' });
+      flash(j.message || 'Deleted', true);
+      loadTrainers();
+      loadTrainerOptions();
+    } catch (e) {
+      flash(e.message, false);
+    }
+  }
+
+  var modal = document.getElementById('modal-edit');
+  var modalBody = document.getElementById('modal-body');
+  var modalTitle = document.getElementById('modal-title');
+  var saveKind = null;
+  var saveId = null;
+
+  document.getElementById('modal-cancel').addEventListener('click', function () { modal.close(); });
+  document.getElementById('modal-form').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    if (saveKind === 'fighter') submitEditFighter(saveId);
+    else if (saveKind === 'trainer') submitEditTrainer(saveId);
+  });
+
+  function openEditFighter(f) {
+    saveKind = 'fighter';
+    saveId = f.id;
+    modalTitle.textContent = 'Edit fighter';
+    modalBody.innerHTML =
+      '<div class="field"><label>Name</label><input id="m-f-name" value="' + escapeAttr(f.name) + '" /></div>' +
+      '<div class="field"><label>Age</label><input id="m-f-age" type="number" value="' + f.age + '" /></div>' +
+      '<div class="field"><label>Weight</label><input id="m-f-weight" type="number" step="0.1" value="' + f.weight + '" /></div>' +
+      '<div class="field"><label>Wins</label><input id="m-f-wins" type="number" value="' + f.wins + '" /></div>' +
+      '<div class="field"><label>Losses</label><input id="m-f-losses" type="number" value="' + f.losses + '" /></div>' +
+      '<div class="field"><label>Trainer ID</label><input id="m-f-trainer" value="' + escapeAttr(f.trainer_id) + '" /></div>';
+    modal.showModal();
+  }
+
+  function openEditTrainer(t) {
+    saveKind = 'trainer';
+    saveId = t.id;
+    modalTitle.textContent = 'Edit trainer';
+    var spec = (t.specialization || []).join(', ');
+    modalBody.innerHTML =
+      '<div class="field"><label>Name</label><input id="m-t-name" value="' + escapeAttr(t.name) + '" /></div>' +
+      '<div class="field"><label>Age</label><input id="m-t-age" type="number" value="' + t.age + '" /></div>' +
+      '<div class="field"><label>Specializations (comma-separated)</label><input id="m-t-spec" value="' + escapeAttr(spec) + '" /></div>';
+    modal.showModal();
+  }
+
+  function escapeAttr(s) {
+    return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+  }
+
+  async function submitEditFighter(id) {
+    var body = {
+      name: document.getElementById('m-f-name').value.trim(),
+      age: parseInt(document.getElementById('m-f-age').value, 10),
+      weight: parseFloat(document.getElementById('m-f-weight').value),
+      wins: parseInt(document.getElementById('m-f-wins').value, 10),
+      losses: parseInt(document.getElementById('m-f-losses').value, 10),
+      trainer_id: document.getElementById('m-f-trainer').value.trim()
+    };
+    try {
+      const j = await api('/fighters/profile/update?id=' + encodeURIComponent(id), {
+        method: 'PUT',
+        body: JSON.stringify(body)
+      });
+      flash(j.message || 'Updated', true);
+      modal.close();
+      loadFighters();
+    } catch (e) {
+      flash(e.message, false);
+    }
+  }
+
+  async function submitEditTrainer(id) {
+    var specRaw = document.getElementById('m-t-spec').value.trim();
+    var spec = specRaw ? specRaw.split(',').map(function (s) { return s.trim(); }).filter(Boolean) : [];
+    var body = {
+      name: document.getElementById('m-t-name').value.trim(),
+      age: parseInt(document.getElementById('m-t-age').value, 10),
+      specialization: spec
+    };
+    try {
+      const j = await api('/trainers/profile/update?id=' + encodeURIComponent(id), {
+        method: 'PUT',
+        body: JSON.stringify(body)
+      });
+      flash(j.message || 'Updated', true);
+      modal.close();
+      loadTrainers();
+    } catch (e) {
+      flash(e.message, false);
+    }
+  }
+
+  updateUIAuth();
+  if (getToken() && getUser()) {
+    loadTrainerOptions();
+    loadFighters();
+    loadTrainers();
+  }
+})();
+  </script>
+</body>
+</html>

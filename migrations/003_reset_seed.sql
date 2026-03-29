@@ -1,0 +1,83 @@
+-- Manual only: clears trainers + fighters, then reloads the same sample set as init/002_seed.sql.
+-- Do not place this file under migrations/init (Docker first-boot would wipe seed).
+-- Run from repo root, e.g.:
+--   docker compose exec -T postgres psql -U postgres -d boxing-gym-management < migrations/003_reset_seed.sql
+--
+-- If you use auth: create `users` first (once), then reset can truncate/reseed admin:
+--   docker compose exec -T postgres psql -U postgres -d boxing-gym-management < migrations/init/004_users.sql
+--
+-- Keep trainer/fighter INSERT blocks in sync with migrations/init/002_seed.sql.
+-- Admin user INSERT must match migrations/init/004_users.sql (email + password_hash + role).
+
+BEGIN;
+
+TRUNCATE TABLE fighters, trainers CASCADE;
+
+-- Skip if auth migration not applied yet (`users` table missing).
+DO $users_reset$
+BEGIN
+	IF to_regclass('public.users') IS NOT NULL THEN
+		EXECUTE 'TRUNCATE TABLE users';
+	END IF;
+END
+$users_reset$;
+
+INSERT INTO trainers (id, name, age, specialization) VALUES
+    ('a0000001-0000-4000-8000-000000000001', 'James Mitchell', 44, ARRAY['Boxing', 'Kickboxing']),
+    ('a0000001-0000-4000-8000-000000000002', 'Sarah Chen', 36, ARRAY['Muay Thai', 'Dutch Kickboxing']),
+    ('a0000001-0000-4000-8000-000000000003', 'Marcus Webb', 51, ARRAY['Brazilian Jiu-Jitsu', 'MMA']),
+    ('a0000001-0000-4000-8000-000000000004', 'Elena Vasquez', 39, ARRAY['Wrestling', 'Judo']),
+    ('a0000001-0000-4000-8000-000000000005', 'David Okonkwo', 47, ARRAY['Boxing', 'Savate']),
+    ('a0000001-0000-4000-8000-000000000006', 'Rachel Foster', 33, ARRAY['Karate', 'Taekwondo']),
+    ('a0000001-0000-4000-8000-000000000007', 'Tom Brennan', 55, ARRAY['Sambo', 'Judo']),
+    ('a0000001-0000-4000-8000-000000000008', 'Priya Sharma', 41, ARRAY['MMA', 'Muay Thai']),
+    ('a0000001-0000-4000-8000-000000000009', 'Chris Dalton', 29, ARRAY['Kickboxing', 'Boxing']),
+    ('a0000001-0000-4000-8000-00000000000a', 'Nina Kowalski', 45, ARRAY['Kyokushin Karate']),
+    ('a0000001-0000-4000-8000-00000000000b', 'Andre Lewis', 38, ARRAY['Capoeira', 'MMA']),
+    ('a0000001-0000-4000-8000-00000000000c', 'Hannah Brooks', 42, ARRAY['Wrestling', 'Brazilian Jiu-Jitsu']),
+    ('a0000001-0000-4000-8000-00000000000d', 'Kevin Park', 34, ARRAY['Taekwondo', 'Kickboxing']),
+    ('a0000001-0000-4000-8000-00000000000e', 'Monica Reyes', 48, ARRAY['Boxing', 'Muay Thai', 'Jeet Kune Do']),
+    ('a0000001-0000-4000-8000-00000000000f', 'Ryan O''Connor', 40, ARRAY['Judo', 'Sambo']),
+    ('a0000001-0000-4000-8000-000000000010', 'Yuki Tanaka', 37, ARRAY['Karate', 'Kendo']),
+    ('a0000001-0000-4000-8000-000000000011', 'Jordan Hayes', 31, ARRAY['MMA', 'Wrestling']),
+    ('a0000001-0000-4000-8000-000000000012', 'Amira Hassan', 46, ARRAY['Krav Maga', 'Kickboxing']),
+    ('a0000001-0000-4000-8000-000000000013', 'Luke Patterson', 52, ARRAY['Boxing']),
+    ('a0000001-0000-4000-8000-000000000014', 'Olivia Grant', 35, ARRAY['Brazilian Jiu-Jitsu', 'Judo']);
+
+INSERT INTO fighters (id, name, age, weight, wins, losses, trainer_id) VALUES
+    ('b0000001-0000-4000-8000-000000000001', 'Tyler Brooks', 23, 76.2, 9, 2, 'a0000001-0000-4000-8000-000000000001'),
+    ('b0000001-0000-4000-8000-000000000002', 'Maya Collins', 21, 58.5, 6, 1, 'a0000001-0000-4000-8000-000000000002'),
+    ('b0000001-0000-4000-8000-000000000003', 'Ethan Rivera', 27, 83.1, 14, 4, 'a0000001-0000-4000-8000-000000000003'),
+    ('b0000001-0000-4000-8000-000000000004', 'Sophie Turner', 24, 62.0, 11, 0, 'a0000001-0000-4000-8000-000000000004'),
+    ('b0000001-0000-4000-8000-000000000005', 'Daniel Hughes', 26, 70.4, 7, 3, 'a0000001-0000-4000-8000-000000000005'),
+    ('b0000001-0000-4000-8000-000000000006', 'Chloe Bennett', 22, 56.8, 4, 2, 'a0000001-0000-4000-8000-000000000006'),
+    ('b0000001-0000-4000-8000-000000000007', 'Brandon Scott', 29, 92.0, 18, 5, 'a0000001-0000-4000-8000-000000000007'),
+    ('b0000001-0000-4000-8000-000000000008', 'Aisha Malik', 25, 66.3, 10, 2, 'a0000001-0000-4000-8000-000000000008'),
+    ('b0000001-0000-4000-8000-000000000009', 'Jake Morrison', 20, 72.5, 3, 1, 'a0000001-0000-4000-8000-000000000009'),
+    ('b0000001-0000-4000-8000-00000000000a', 'Emily Watson', 28, 61.1, 15, 6, 'a0000001-0000-4000-8000-00000000000a'),
+    ('b0000001-0000-4000-8000-00000000000b', 'Marcus Cole', 24, 79.8, 8, 4, 'a0000001-0000-4000-8000-00000000000b'),
+    ('b0000001-0000-4000-8000-00000000000c', 'Grace Kim', 19, 54.2, 2, 0, 'a0000001-0000-4000-8000-00000000000c'),
+    ('b0000001-0000-4000-8000-00000000000d', 'Noah Fischer', 30, 77.0, 12, 7, 'a0000001-0000-4000-8000-00000000000d'),
+    ('b0000001-0000-4000-8000-00000000000e', 'Isabella Rossi', 23, 59.4, 5, 1, 'a0000001-0000-4000-8000-00000000000e'),
+    ('b0000001-0000-4000-8000-00000000000f', 'Caleb Wright', 26, 68.9, 9, 3, 'a0000001-0000-4000-8000-00000000000f'),
+    ('b0000001-0000-4000-8000-000000000010', 'Natalie Owens', 27, 63.7, 13, 2, 'a0000001-0000-4000-8000-000000000010'),
+    ('b0000001-0000-4000-8000-000000000011', 'Derek Stone', 22, 81.4, 6, 5, 'a0000001-0000-4000-8000-000000000011'),
+    ('b0000001-0000-4000-8000-000000000012', 'Zara Ahmed', 25, 57.5, 8, 1, 'a0000001-0000-4000-8000-000000000012'),
+    ('b0000001-0000-4000-8000-000000000013', 'Logan Pierce', 31, 74.2, 20, 8, 'a0000001-0000-4000-8000-000000000013'),
+    ('b0000001-0000-4000-8000-000000000014', 'Victoria Lane', 21, 60.0, 4, 0, 'a0000001-0000-4000-8000-000000000014');
+
+DO $users_seed$
+BEGIN
+	IF to_regclass('public.users') IS NOT NULL THEN
+		INSERT INTO users (id, email, password_hash, role) VALUES
+			(
+				'c0000001-0000-4000-8000-000000000001',
+				'admin@gym.local',
+				'$2a$10$vfiRvvLVUzYd8mb4j9/gz.1eohAVjqyFmZGiCp5t.xTQJycXk6Zae',
+				'admin'
+			);
+	END IF;
+END
+$users_seed$;
+
+COMMIT;

@@ -1,0 +1,42 @@
+# --- Go ---
+/bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+vendor/
+
+# Coverage & profiling
+coverage.out
+coverage.html
+*.coverprofile
+cpu.prof
+mem.prof
+
+# --- Environment (secrets) ---
+.env
+.env.local
+.env.*.local
+
+# --- IDE & editors ---
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# --- Air (live reload) ---
+tmp/
+build-errors.log
+
+# --- Misc ---
+*.log
+.debug/
